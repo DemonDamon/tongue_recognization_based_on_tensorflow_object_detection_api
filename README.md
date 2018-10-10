@@ -1,4 +1,4 @@
 # tongue_recognization
 Fine-tune models like ssd_mobilenet、faster_rcnn models in COCO dataset for detecting tongues
 All elementary codes are from TensorFlow Object Detection API
-The Chinese version tutorial of my little project is here https://mp.weixin.qq.com/s?__biz=MzIyMjE5Njk1Mw==&tempkey=OTc3X3lIV0xTMDJ3RTZNWHlMekxXRjRYQ09aa1NLcVJCbjUwQW1SQ21uUUZ2UWx5TlBEeUhEQnZaWG9qdUpmNHhQXy1OS21YdENtRVF2eWxkalRwZ1pWa29ZeFI0R2xRMUFaYjUwQ0w3Y1Y1Vm85U25zT0tCRWdZNHdmWUhQZkc0dmtRb1JhV25tS0FUYUFST0lBQi1EQWRqbXhubGN0UkQ1b2FhNi1fM3d%2Bfg%3D%3D&chksm=73c351a844b4d8be8963b4a21f63b7d79e72c983339f7ede427cfde4fa01f41e8b177b046675#rd
+The Chinese version tutorial of my little project is here https://mp.weixin.qq.com/s?__biz=MzIyMjE5Njk1Mw==&mid=2651247687&idx=1&sn=737d94e4503d1bc0585137aea49f922d&scene=19#wechat_redirect
