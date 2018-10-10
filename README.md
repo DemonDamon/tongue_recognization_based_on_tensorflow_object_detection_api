@@ -11,7 +11,7 @@ DevEvn `Python-v3(3.6)`：
 
  - tensorflow==1.9.0
 
-Hardware Equipment
+Hardware Equipment：
  - 4 core CPU
  - 24gb memory
  - 11gb video memory
@@ -19,7 +19,7 @@ Hardware Equipment
  - 11.34tflop (single precision)
  - 2T hard disk
 
-Result
+Result：
   - ![image](https://github.com/DemonDamon/tongue_recognization/blob/master/test_tongue_1.png)
   - ![image](https://github.com/DemonDamon/tongue_recognization/blob/master/test_tongue_2.png)
 
