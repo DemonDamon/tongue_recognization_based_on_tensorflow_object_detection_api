@@ -18,3 +18,8 @@ Hardware Equipment
  - 484gb/s bandwidth of video memory 
  - 11.34tflop (single precision)
  - 2T hard disk
+
+Result
+ ![image](https://github.com/DemonDamon/tongue_recognization/blob/master/test_tongue_1.png)
+ ![image](https://github.com/DemonDamon/tongue_recognization/blob/master/test_tongue_2.png)
+
