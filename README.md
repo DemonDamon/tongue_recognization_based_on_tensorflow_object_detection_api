@@ -20,6 +20,6 @@ Hardware Equipment
  - 2T hard disk
 
 Result
- ![image](https://github.com/DemonDamon/tongue_recognization/blob/master/test_tongue_1.png)
- ![image](https://github.com/DemonDamon/tongue_recognization/blob/master/test_tongue_2.png)
+  - ![image](https://github.com/DemonDamon/tongue_recognization/blob/master/test_tongue_1.png)
+  - ![image](https://github.com/DemonDamon/tongue_recognization/blob/master/test_tongue_2.png)
 
