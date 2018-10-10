@@ -1,0 +1,26 @@
+<annotation>
+	<folder>test</folder>
+	<filename>0_0.jpg</filename>
+	<path>D:\tonge_recognization_project\data\test\0_0.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>256</width>
+		<height>256</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>tongue</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>100</xmin>
+			<ymin>101</ymin>
+			<xmax>171</xmax>
+			<ymax>157</ymax>
+		</bndbox>
+	</object>
+</annotation>
