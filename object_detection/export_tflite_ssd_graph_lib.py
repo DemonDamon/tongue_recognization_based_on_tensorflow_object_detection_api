@@ -13,7 +13,6 @@
 # limitations under the License.
 # ==============================================================================
 """Exports an SSD detection model to use with tf-lite.
-
 See export_tflite_ssd_graph.py for usage.
 """
 import os
@@ -36,11 +35,9 @@ _DEFAULT_NUM_COORD_BOX = 4
 
 def get_const_center_size_encoded_anchors(anchors):
   """Exports center-size encoded anchors as a constant tensor.
-
   Args:
     anchors: a float32 tensor of shape [num_anchors, 4] containing the anchor
       boxes
-
   Returns:
     encoded_anchors: a float32 constant tensor of shape [num_anchors, 4]
     containing the anchor boxes.
@@ -59,11 +56,17 @@ def get_const_center_size_encoded_anchors(anchors):
   return encoded_anchors
 
 
-def append_postprocessing_op(frozen_graph_def, max_detections,
-                             max_classes_per_detection, nms_score_threshold,
-                             nms_iou_threshold, num_classes, scale_values):
+def append_postprocessing_op(frozen_graph_def,
+                             max_detections,
+                             max_classes_per_detection,
+                             nms_score_threshold,
+                             nms_iou_threshold,
+                             num_classes,
+                             scale_values,
+                             detections_per_class=100,
+                             use_regular_nms=False,
+                             additional_output_tensors=()):
   """Appends postprocessing custom op.
-
   Args:
     frozen_graph_def: Frozen GraphDef for SSD model after freezing the
       checkpoint
@@ -76,8 +79,13 @@ def append_postprocessing_op(frozen_graph_def, max_detections,
     num_classes: number of classes in SSD detector
     scale_values: scale values is a dict with following key-value pairs
       {y_scale: 10, x_scale: 10, h_scale: 5, w_scale: 5} that are used in decode
-      centersize boxes
-
+        centersize boxes
+    detections_per_class: In regular NonMaxSuppression, number of anchors used
+      for NonMaxSuppression per class
+    use_regular_nms: Flag to set postprocessing op to use Regular NMS instead of
+      Fast NMS.
+    additional_output_tensors: Array of additional tensor names to output.
+      Tensors are appended after postprocessing output.
   Returns:
     transformed_graph_def: Frozen GraphDef with postprocessing custom op
     appended
@@ -121,26 +129,37 @@ def append_postprocessing_op(frozen_graph_def, max_detections,
       attr_value_pb2.AttrValue(f=scale_values['h_scale'].pop()))
   new_output.attr['w_scale'].CopyFrom(
       attr_value_pb2.AttrValue(f=scale_values['w_scale'].pop()))
+  new_output.attr['detections_per_class'].CopyFrom(
+      attr_value_pb2.AttrValue(i=detections_per_class))
+  new_output.attr['use_regular_nms'].CopyFrom(
+      attr_value_pb2.AttrValue(b=use_regular_nms))
 
   new_output.input.extend(
       ['raw_outputs/box_encodings', 'raw_outputs/class_predictions', 'anchors'])
   # Transform the graph to append new postprocessing op
   input_names = []
-  output_names = ['TFLite_Detection_PostProcess']
+  output_names = ['TFLite_Detection_PostProcess'
+                 ] + list(additional_output_tensors)
   transforms = ['strip_unused_nodes']
   transformed_graph_def = TransformGraph(frozen_graph_def, input_names,
                                          output_names, transforms)
   return transformed_graph_def
 
 
-def export_tflite_graph(pipeline_config, trained_checkpoint_prefix, output_dir,
-                        add_postprocessing_op, max_detections,
-                        max_classes_per_detection):
+def export_tflite_graph(pipeline_config,
+                        trained_checkpoint_prefix,
+                        output_dir,
+                        add_postprocessing_op,
+                        max_detections,
+                        max_classes_per_detection,
+                        detections_per_class=100,
+                        use_regular_nms=False,
+                        binary_graph_name='tflite_graph.pb',
+                        txt_graph_name='tflite_graph.pbtxt',
+                        additional_output_tensors=()):
   """Exports a tflite compatible graph and anchors for ssd detection model.
-
   Anchors are written to a tensor and tflite compatible graph
   is written to output_dir/tflite_graph.pb.
-
   Args:
     pipeline_config: a pipeline.proto object containing the configuration for
       SSD model to export.
@@ -151,8 +170,14 @@ def export_tflite_graph(pipeline_config, trained_checkpoint_prefix, output_dir,
       TFLite_Detection_PostProcess custom op
     max_detections: Maximum number of detections (boxes) to show
     max_classes_per_detection: Number of classes to display per detection
-
-
+    detections_per_class: In regular NonMaxSuppression, number of anchors used
+      for NonMaxSuppression per class
+    use_regular_nms: Flag to set postprocessing op to use Regular NMS instead of
+      Fast NMS.
+    binary_graph_name: Name of the exported graph file in binary format.
+    txt_graph_name: Name of the exported graph file in text format.
+    additional_output_tensors: Array of additional tensor names to output.
+      Additional tensors are appended to the end of output tensor list.
   Raises:
     ValueError: if the pipeline config contains models other than ssd or uses an
       fixed_shape_resizer and provides a shape as well.
@@ -165,12 +190,12 @@ def export_tflite_graph(pipeline_config, trained_checkpoint_prefix, output_dir,
 
   num_classes = pipeline_config.model.ssd.num_classes
   nms_score_threshold = {
-      pipeline_config.model.ssd.post_processing.batch_non_max_suppression.
-      score_threshold
+      pipeline_config.model.ssd.post_processing.batch_non_max_suppression
+      .score_threshold
   }
   nms_iou_threshold = {
-      pipeline_config.model.ssd.post_processing.batch_non_max_suppression.
-      iou_threshold
+      pipeline_config.model.ssd.post_processing.batch_non_max_suppression
+      .iou_threshold
   }
   scale_values = {}
   scale_values['y_scale'] = {
@@ -234,11 +259,15 @@ def export_tflite_graph(pipeline_config, trained_checkpoint_prefix, output_dir,
   tf.train.get_or_create_global_step()
 
   # graph rewriter
-  if pipeline_config.HasField('graph_rewriter'):
+  is_quantized = pipeline_config.HasField('graph_rewriter')
+  if is_quantized:
     graph_rewriter_config = pipeline_config.graph_rewriter
     graph_rewriter_fn = graph_rewriter_builder.build(
         graph_rewriter_config, is_training=False)
     graph_rewriter_fn()
+
+  if pipeline_config.model.ssd.feature_extractor.HasField('fpn'):
+    exporter.rewrite_nn_resize_op(is_quantized)
 
   # freeze the graph
   saver_kwargs = {}
@@ -261,7 +290,7 @@ def export_tflite_graph(pipeline_config, trained_checkpoint_prefix, output_dir,
       output_node_names=','.join([
           'raw_outputs/box_encodings', 'raw_outputs/class_predictions',
           'anchors'
-      ]),
+      ] + list(additional_output_tensors)),
       restore_op_name='save/restore_all',
       filename_tensor_name='save/Const:0',
       clear_devices=True,
@@ -271,15 +300,23 @@ def export_tflite_graph(pipeline_config, trained_checkpoint_prefix, output_dir,
   # Add new operation to do post processing in a custom op (TF Lite only)
   if add_postprocessing_op:
     transformed_graph_def = append_postprocessing_op(
-        frozen_graph_def, max_detections, max_classes_per_detection,
-        nms_score_threshold, nms_iou_threshold, num_classes, scale_values)
+        frozen_graph_def,
+        max_detections,
+        max_classes_per_detection,
+        nms_score_threshold,
+        nms_iou_threshold,
+        num_classes,
+        scale_values,
+        detections_per_class,
+        use_regular_nms,
+        additional_output_tensors=additional_output_tensors)
   else:
     # Return frozen without adding post-processing custom op
     transformed_graph_def = frozen_graph_def
 
-  binary_graph = os.path.join(output_dir, 'tflite_graph.pb')
+  binary_graph = os.path.join(output_dir, binary_graph_name)
   with tf.gfile.GFile(binary_graph, 'wb') as f:
     f.write(transformed_graph_def.SerializeToString())
-  txt_graph = os.path.join(output_dir, 'tflite_graph.pbtxt')
+  txt_graph = os.path.join(output_dir, txt_graph_name)
   with tf.gfile.GFile(txt_graph, 'w') as f:
     f.write(str(transformed_graph_def))
