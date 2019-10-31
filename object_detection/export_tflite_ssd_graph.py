@@ -13,18 +13,14 @@
 # limitations under the License.
 # ==============================================================================
 r"""Exports an SSD detection model to use with tf-lite.
-
 Outputs file:
 * A tflite compatible frozen graph - $output_directory/tflite_graph.pb
-
 The exported graph has the following input and output nodes.
-
 Inputs:
 'normalized_input_image_tensor': a float32 tensor of shape
 [1, height, width, 3] containing the normalized input image. Note that the
 height and width must be compatible with the height and width configured in
 the fixed_shape_image resizer options in the pipeline config proto.
-
 In floating point Mobilenet model, 'normalized_image_tensor' has values
 between [-1,1). This typically means mapping each pixel (linearly)
 to a value between [-1, 1]. Input image
@@ -34,7 +30,6 @@ In quantized Mobilenet model, 'normalized_image_tensor' has values between [0,
 255].
 In general, see the `preprocess` function defined in the feature extractor class
 in the object_detection/models directory.
-
 Outputs:
 If add_postprocessing_op is true: frozen graph adds a
   TFLite_Detection_PostProcess custom op node has four outputs:
@@ -52,14 +47,12 @@ else:
    'raw_outputs/class_predictions': a float32 tensor of shape
     [1, num_anchors, num_classes] containing the class scores for each anchor
     after applying score conversion.
-
 Example Usage:
 --------------
 python object_detection/export_tflite_ssd_graph \
     --pipeline_config_path path/to/ssd_mobilenet.config \
     --trained_checkpoint_prefix path/to/model.ckpt \
     --output_directory path/to/exported_model_directory
-
 The expected output would be in the directory
 path/to/exported_model_directory (which is created if it does not exist)
 with contents:
@@ -70,7 +63,6 @@ Config overrides (see the `config_override` flag) are text protobufs
 certain fields in the provided pipeline_config_path.  These are useful for
 making small changes to the inference graph that differ from the training or
 eval config.
-
 Example Usage (in which we change the NMS iou_threshold to be 0.5 and
 NMS score_threshold to be 0.0):
 python object_detection/export_tflite_ssd_graph \
@@ -106,9 +98,15 @@ flags.DEFINE_string('trained_checkpoint_prefix', None, 'Checkpoint prefix.')
 flags.DEFINE_integer('max_detections', 10,
                      'Maximum number of detections (boxes) to show.')
 flags.DEFINE_integer('max_classes_per_detection', 1,
-                     'Number of classes to display per detection box.')
+                     'Maximum number of classes to output per detection box.')
+flags.DEFINE_integer(
+    'detections_per_class', 100,
+    'Number of anchors used per class in Regular Non-Max-Suppression.')
 flags.DEFINE_bool('add_postprocessing_op', True,
                   'Add TFLite custom op for postprocessing to the graph.')
+flags.DEFINE_bool(
+    'use_regular_nms', False,
+    'Flag to set postprocessing op to use Regular NMS instead of Fast NMS.')
 flags.DEFINE_string(
     'config_override', '', 'pipeline_pb2.TrainEvalPipelineConfig '
     'text proto to override pipeline_config_path.')
@@ -130,7 +128,7 @@ def main(argv):
   export_tflite_ssd_graph_lib.export_tflite_graph(
       pipeline_config, FLAGS.trained_checkpoint_prefix, FLAGS.output_directory,
       FLAGS.add_postprocessing_op, FLAGS.max_detections,
-      FLAGS.max_classes_per_detection)
+      FLAGS.max_classes_per_detection, use_regular_nms=FLAGS.use_regular_nms)
 
 
 if __name__ == '__main__':
